@@ -1,22 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
+    <!-- Colores básicos -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Fondo principal -->
     <color name="fl_surface">#FAF9F6</color>
+
+    <!-- Superficies y tarjetas -->
     <color name="fl_surface_container_lowest">#FFFFFF</color>
     <color name="fl_surface_container_low">#F4F4F0</color>
     <color name="fl_surface_variant">#E2E3DF</color>
+
+    <!-- Texto -->
     <color name="fl_on_surface">#1A1C1A</color>
     <color name="fl_on_surface_variant">#404941</color>
+
+    <!-- Bordes y elementos secundarios -->
     <color name="fl_outline">#707A70</color>
     <color name="fl_outline_variant">#BFC9BE</color>
+
+    <!-- Verde principal -->
     <color name="fl_primary">#003C1F</color>
     <color name="fl_primary_container">#00562E</color>
     <color name="fl_on_primary">#FFFFFF</color>
+
+    <!-- Dorado para el botón Analizar y detalles -->
     <color name="fl_gold">#D6A014</color>
+
+    <!-- Fondo suave de tarjetas informativas -->
     <color name="fl_guide_bg">#E8F1EC</color>
 
-    <!-- Colores btn -->
     <color name="btn_purple">#4A148C</color>
     <color name="btn_green">#006400</color>
+
 </resources>

@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permisos para usar la cámara y grabar audio -->
+    <!-- Permisos para usar cámara y grabar video con audio -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
@@ -21,7 +21,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FaceDetectionYDeteccionDeMallaFacial">
 
-        <!-- Pantalla Principal FatigueLens -->
+        <!-- Pantalla principal de la app -->
         <activity
             android:name=".FatigueLensActivity"
             android:exported="true"
@@ -39,7 +39,7 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- FileProvider para guardar fotos tomadas con la cámara -->
+        <!-- FileProvider para guardar fotos y videos tomados desde la cámara -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

@@ -4,6 +4,7 @@ plugins {
 
 android {
     namespace = "com.example.facedetectionydetecciondemallafacial"
+
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -27,6 +28,7 @@ android {
             }
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -38,12 +40,16 @@ dependencies {
     implementation(libs.appcompat)
     implementation(libs.constraintlayout)
     implementation(libs.material)
+
+    // ML Kit
     implementation(libs.face.detection)
     implementation(libs.face.mesh.detection)
+
+    // Necesaria para FileProvider
+    implementation("androidx.core:core:1.13.1")
+
+    // Pruebas
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.activity:activity:1.9.3")
-    implementation("androidx.core:core:1.13.1")
 }
