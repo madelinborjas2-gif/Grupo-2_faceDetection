@@ -93,43 +93,41 @@
                     android:src="@drawable/ic_preview_corners" />
             </FrameLayout>
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCamera"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:layout_marginTop="16dp"
-                android:background="@drawable/bg_button_primary"
-                android:backgroundTint="@null"
-                android:drawableStart="@drawable/ic_camera_small"
-                android:drawablePadding="8dp"
+                android:background="@drawable/btn_primary_selector"
+                app:backgroundTint="@null"
+                app:icon="@drawable/ic_camera_small"
+                app:iconTint="@color/btn_text_selector"
+                app:iconGravity="textStart"
                 android:fontFamily="sans"
-                android:gravity="center"
-                android:paddingLeft="16dp"
-                android:paddingRight="16dp"
                 android:text="Capturar con Cámara"
                 android:textAllCaps="false"
-                android:textColor="@color/fl_on_primary"
+                android:textColor="@color/btn_text_selector"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                app:cornerRadius="26dp" />
 
-            <Button
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnGallery"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:layout_marginTop="10dp"
-                android:background="@drawable/bg_button_secondary"
-                android:backgroundTint="@null"
-                android:drawableStart="@drawable/ic_gallery_small"
-                android:drawablePadding="8dp"
+                android:background="@drawable/btn_primary_selector"
+                app:backgroundTint="@null"
+                app:icon="@drawable/ic_gallery_small"
+                app:iconTint="@color/btn_text_selector"
+                app:iconGravity="textStart"
                 android:fontFamily="sans"
-                android:gravity="center"
-                android:paddingLeft="16dp"
-                android:paddingRight="16dp"
                 android:text="Seleccionar de Galería"
                 android:textAllCaps="false"
-                android:textColor="@color/fl_primary_container"
+                android:textColor="@color/btn_text_selector"
                 android:textSize="15sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                app:cornerRadius="26dp" />
 
             <LinearLayout
                 android:id="@+id/guideCard"

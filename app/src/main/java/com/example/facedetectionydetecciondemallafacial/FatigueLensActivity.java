@@ -2,6 +2,7 @@ package com.example.facedetectionydetecciondemallafacial;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -32,6 +33,8 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.view.View;
 
+import com.google.android.material.button.MaterialButton;
+
 import java.io.InputStream;
 
 public class FatigueLensActivity extends AppCompatActivity {
@@ -55,8 +58,8 @@ public class FatigueLensActivity extends AppCompatActivity {
         imagePreview = findViewById(R.id.imagePreview);
         previewText = findViewById(R.id.previewText);
 
-        Button btnCamera = findViewById(R.id.btnCamera);
-        Button btnGallery = findViewById(R.id.btnGallery);
+        final MaterialButton btnCamera = findViewById(R.id.btnCamera);
+        final MaterialButton btnGallery = findViewById(R.id.btnGallery);
         ImageButton btnSettings = findViewById(R.id.btnSettings);
         LinearLayout navHome = findViewById(R.id.navHome);
         LinearLayout navAnalysis = findViewById(R.id.navAnalysis);
@@ -90,7 +93,7 @@ public class FatigueLensActivity extends AppCompatActivity {
                     if (success && cameraMediaUri != null) {
                         selectedMediaUri = cameraMediaUri;
                         showSelectedImage(selectedMediaUri);
-                        Toast.makeText(this, "Foto guardada en FatigueLens", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Foto guardada", Toast.LENGTH_SHORT).show();
                     }
                 }
         );
@@ -103,7 +106,7 @@ public class FatigueLensActivity extends AppCompatActivity {
                         imagePreview.setImageResource(android.R.drawable.presence_video_online);
                         previewText.setText("Video capturado");
                         previewText.setVisibility(View.VISIBLE);
-                        Toast.makeText(this, "Video guardado en FatigueLens", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Video guardado", Toast.LENGTH_SHORT).show();
                     }
                 }
         );
@@ -111,9 +114,12 @@ public class FatigueLensActivity extends AppCompatActivity {
         galleryLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
                 uri -> {
+                    findViewById(R.id.btnGallery).setSelected(false);
+
                     if (uri != null) {
                         selectedMediaUri = uri;
-                        if (getContentResolver().getType(uri).contains("video")) {
+                        String type = getContentResolver().getType(uri);
+                        if (type != null && type.contains("video")) {
                             imagePreview.setImageResource(android.R.drawable.presence_video_online);
                             previewText.setText("Video seleccionado");
                             previewText.setVisibility(View.VISIBLE);
@@ -142,17 +148,23 @@ public class FatigueLensActivity extends AppCompatActivity {
     }
 
     private void showCameraOptions() {
+        final MaterialButton btnCamera = findViewById(R.id.btnCamera);
+        btnCamera.setSelected(true);
+
         String[] options = {"Tomar Foto", "Grabar Video"};
-        new AlertDialog.Builder(this)
+        AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Seleccionar acción")
-                .setItems(options, (dialog, which) -> {
+                .setItems(options, (dialogInterface, which) -> {
                     if (which == 0) {
                         openCameraForPhoto();
                     } else {
                         openCameraForVideo();
                     }
                 })
-                .show();
+                .create();
+        dialog.setOnDismissListener(dialogInterface -> btnCamera.setSelected(false));
+
+        dialog.show();
     }
 
     private void openCameraForPhoto() {
@@ -186,6 +198,9 @@ public class FatigueLensActivity extends AppCompatActivity {
     }
 
     private void openGallery() {
+        MaterialButton btnGallery = findViewById(R.id.btnGallery);
+        // Activa inversión de colores mientras la galería está abierta
+        btnGallery.setSelected(true);
         galleryLauncher.launch("*/*");
     }
 

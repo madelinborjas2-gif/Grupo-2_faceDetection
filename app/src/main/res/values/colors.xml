@@ -15,4 +15,8 @@
     <color name="fl_on_primary">#FFFFFF</color>
     <color name="fl_gold">#D6A014</color>
     <color name="fl_guide_bg">#E8F1EC</color>
+
+    <!-- Colores btn -->
+    <color name="btn_purple">#4A148C</color>
+    <color name="btn_green">#006400</color>
 </resources>
