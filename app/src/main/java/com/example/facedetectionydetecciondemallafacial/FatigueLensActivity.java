@@ -295,7 +295,7 @@ public class FatigueLensActivity extends AppCompatActivity {
         resultText.setText("Procesando archivo con ML Kit Face Detection...");
 
         if (selectedIsVideo) {
-            analyzeVideoFrame(selectedMediaUri);
+            analyzeVideoFrames(selectedMediaUri);
         } else {
             analyzeImage(selectedMediaUri);
         }
@@ -304,7 +304,7 @@ public class FatigueLensActivity extends AppCompatActivity {
     private void analyzeImage(Uri uri) {
         try {
             InputImage image = InputImage.fromFilePath(this, uri);
-            detectFaces(image, false);
+            detectFaces(image);
 
         } catch (IOException e) {
             resultTitle.setText("ERROR");
@@ -312,25 +312,54 @@ public class FatigueLensActivity extends AppCompatActivity {
         }
     }
 
-    private void analyzeVideoFrame(Uri uri) {
+    private void analyzeVideoFrames(Uri uri) {
         try {
+            resultTitle.setText("ANALIZANDO VIDEO...");
+            resultText.setText("Extrayendo fotogramas del video para un análisis más completo...");
+
             MediaMetadataRetriever retriever = new MediaMetadataRetriever();
             retriever.setDataSource(this, uri);
 
-            Bitmap frame = retriever.getFrameAtTime(
-                    1000000,
-                    MediaMetadataRetriever.OPTION_CLOSEST_SYNC
-            );
+            String durationText = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION);
+            long durationMs = 0;
+
+            if (durationText != null) {
+                durationMs = Long.parseLong(durationText);
+            }
+
+            if (durationMs <= 0) {
+                retriever.release();
+                resultTitle.setText("ERROR");
+                resultText.setText("No se pudo leer la duración del video.");
+                return;
+            }
+
+            List<Bitmap> frames = new ArrayList<>();
+
+            int framesPerSecond = 5;
+            int maxFrames = 60;
+            long intervalMs = 1000 / framesPerSecond;
+
+            for (long timeMs = 0; timeMs < durationMs && frames.size() < maxFrames; timeMs += intervalMs) {
+                Bitmap frame = retriever.getFrameAtTime(
+                        timeMs * 1000,
+                        MediaMetadataRetriever.OPTION_CLOSEST
+                );
+
+                if (frame != null) {
+                    frames.add(frame);
+                }
+            }
 
             retriever.release();
 
-            if (frame != null) {
-                InputImage image = InputImage.fromBitmap(frame, 0);
-                detectFaces(image, true);
-            } else {
+            if (frames.isEmpty()) {
                 resultTitle.setText("ERROR");
-                resultText.setText("No se pudo extraer un fotograma del video.");
+                resultText.setText("No se pudieron extraer fotogramas del video.");
+                return;
             }
+
+            analyzeVideoFramesSequentially(frames);
 
         } catch (Exception e) {
             resultTitle.setText("ERROR");
@@ -338,7 +367,94 @@ public class FatigueLensActivity extends AppCompatActivity {
         }
     }
 
-    private void detectFaces(InputImage image, boolean fromVideo) {
+    private void analyzeVideoFramesSequentially(List<Bitmap> frames) {
+        FaceDetectorOptions options =
+                new FaceDetectorOptions.Builder()
+                        .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+                        .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+                        .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
+                        .build();
+
+        FaceDetector detector = FaceDetection.getClient(options);
+
+        VideoAnalysisSummary summary = new VideoAnalysisSummary();
+        summary.totalFrames = frames.size();
+
+        processNextVideoFrame(frames, 0, detector, summary);
+    }
+
+    private void processNextVideoFrame(
+            List<Bitmap> frames,
+            int index,
+            FaceDetector detector,
+            VideoAnalysisSummary summary
+    ) {
+        if (index >= frames.size()) {
+            detector.close();
+
+            resultTitle.setText("RESULTADO DEL ANÁLISIS");
+            resultText.setText(buildVideoResultText(summary));
+            return;
+        }
+
+        resultText.setText("Analizando fotograma " + (index + 1) + " de " + frames.size() + "...");
+
+        Bitmap frame = frames.get(index);
+        InputImage image = InputImage.fromBitmap(frame, 0);
+
+        detector.process(image)
+                .addOnSuccessListener(faces -> {
+                    summary.framesAnalyzed++;
+
+                    if (faces != null && !faces.isEmpty()) {
+                        summary.framesWithFace++;
+                        summary.totalFacesDetected += faces.size();
+
+                        Face face = faces.get(0);
+
+                        Float smilingProb = face.getSmilingProbability();
+                        Float leftEyeProb = face.getLeftEyeOpenProbability();
+                        Float rightEyeProb = face.getRightEyeOpenProbability();
+
+                        if (leftEyeProb != null && rightEyeProb != null) {
+                            float averageEyes = (leftEyeProb + rightEyeProb) / 2f;
+
+                            summary.sumLeftEye += leftEyeProb;
+                            summary.sumRightEye += rightEyeProb;
+                            summary.eyeDataCount++;
+
+                            if (averageEyes < 0.35f) {
+                                summary.closedEyeFrames++;
+                            }
+
+                            if (averageEyes >= 0.35f && averageEyes < 0.60f) {
+                                summary.lowEyeFrames++;
+                            }
+                        }
+
+                        if (smilingProb != null) {
+                            summary.sumSmile += smilingProb;
+                            summary.smileDataCount++;
+                        }
+
+                        summary.sumHeadY += face.getHeadEulerAngleY();
+                        summary.sumHeadZ += face.getHeadEulerAngleZ();
+                        summary.angleDataCount++;
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    summary.framesAnalyzed++;
+                })
+                .addOnCompleteListener(task -> {
+                    if (!frame.isRecycled()) {
+                        frame.recycle();
+                    }
+
+                    processNextVideoFrame(frames, index + 1, detector, summary);
+                });
+    }
+
+    private void detectFaces(InputImage image) {
         FaceDetectorOptions options =
                 new FaceDetectorOptions.Builder()
                         .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
@@ -351,15 +467,16 @@ public class FatigueLensActivity extends AppCompatActivity {
         detector.process(image)
                 .addOnSuccessListener(faces -> {
                     resultTitle.setText("RESULTADO DEL ANÁLISIS");
-                    resultText.setText(buildFaceResultText(faces, fromVideo));
+                    resultText.setText(buildImageResultText(faces));
                 })
                 .addOnFailureListener(e -> {
                     resultTitle.setText("ERROR");
                     resultText.setText("No se pudo completar el análisis facial.");
-                });
+                })
+                .addOnCompleteListener(task -> detector.close());
     }
 
-    private String buildFaceResultText(List<Face> faces, boolean fromVideo) {
+    private String buildImageResultText(List<Face> faces) {
         if (faces == null || faces.isEmpty()) {
             return "No se detectó ningún rostro.\n\n" +
                     "Recomendación: usa buena iluminación y coloca el rostro centrado en la cámara.";
@@ -367,13 +484,7 @@ public class FatigueLensActivity extends AppCompatActivity {
 
         StringBuilder result = new StringBuilder();
 
-        if (fromVideo) {
-            result.append("Archivo: Video\n");
-            result.append("Nota: se analizó un fotograma del video.\n\n");
-        } else {
-            result.append("Archivo: Imagen\n\n");
-        }
-
+        result.append("Archivo: Imagen\n\n");
         result.append("Rostros detectados: ").append(faces.size()).append("\n\n");
 
         int counter = 1;
@@ -397,12 +508,12 @@ public class FatigueLensActivity extends AppCompatActivity {
                     .append(probabilityToPercent(rightEyeProb))
                     .append("\n");
 
-            //PERCLOS
             if (leftEyeProb != null && rightEyeProb != null) {
                 float leftPercent = leftEyeProb * 100;
                 float rightPercent = rightEyeProb * 100;
-                result.append("• Diagnóstico PERCLOS: ")
-                        .append(calcularDiagnosticoPerclos(leftPercent, rightPercent))
+
+                result.append("• Evaluación visual: ")
+                        .append(calcularEvaluacionVisual(leftPercent, rightPercent))
                         .append("\n");
             }
 
@@ -417,20 +528,81 @@ public class FatigueLensActivity extends AppCompatActivity {
             counter++;
         }
 
+        result.append("Nota: esta es una estimación visual, no un diagnóstico médico.");
+
         return result.toString();
     }
-    private String calcularDiagnosticoPerclos(float opizq, float opder) {
-        // ALERTA MÁXIMA (Fatiga Crítica / Microsueño): Ambos ojos apertura <= 20%
+
+    private String buildVideoResultText(VideoAnalysisSummary summary) {
+        if (summary.framesWithFace == 0) {
+            return "Archivo: Video\n\n" +
+                    "Fotogramas analizados: " + summary.framesAnalyzed + "\n" +
+                    "No se detectó ningún rostro en los fotogramas analizados.\n\n" +
+                    "Recomendación: graba el video con buena iluminación y con el rostro centrado.";
+        }
+
+        int denominator = summary.eyeDataCount > 0 ? summary.eyeDataCount : summary.framesWithFace;
+        int perclos = Math.round((summary.closedEyeFrames * 100f) / denominator);
+
+        String estadoVisual;
+
+        if (perclos >= 50) {
+            estadoVisual = "ALERTA: posible somnolencia / ojos cerrados frecuentes";
+        } else if (perclos >= 30) {
+            estadoVisual = "PRECAUCIÓN: posible cansancio visual";
+        } else {
+            estadoVisual = "Normal: ojos mayormente abiertos";
+        }
+
+        String leftEyeAvg = "No disponible";
+        String rightEyeAvg = "No disponible";
+        String smileAvg = "No disponible";
+
+        if (summary.eyeDataCount > 0) {
+            leftEyeAvg = Math.round((summary.sumLeftEye / summary.eyeDataCount) * 100) + "%";
+            rightEyeAvg = Math.round((summary.sumRightEye / summary.eyeDataCount) * 100) + "%";
+        }
+
+        if (summary.smileDataCount > 0) {
+            smileAvg = Math.round((summary.sumSmile / summary.smileDataCount) * 100) + "%";
+        }
+
+        int avgHeadY = 0;
+        int avgHeadZ = 0;
+
+        if (summary.angleDataCount > 0) {
+            avgHeadY = Math.round(summary.sumHeadY / summary.angleDataCount);
+            avgHeadZ = Math.round(summary.sumHeadZ / summary.angleDataCount);
+        }
+
+        return "Archivo: Video\n" +
+                "Fotogramas extraídos: " + summary.totalFrames + "\n" +
+                "Fotogramas analizados: " + summary.framesAnalyzed + "\n" +
+                "Fotogramas con rostro: " + summary.framesWithFace + "\n\n" +
+
+                "Estimación PERCLOS: " + perclos + "%\n" +
+                "Estado visual: " + estadoVisual + "\n\n" +
+
+                "Promedios del video:\n" +
+                "• Ojo izquierdo abierto: " + leftEyeAvg + "\n" +
+                "• Ojo derecho abierto: " + rightEyeAvg + "\n" +
+                "• Sonrisa: " + smileAvg + "\n" +
+                "• Giro horizontal promedio: " + avgHeadY + "°\n" +
+                "• Inclinación promedio: " + avgHeadZ + "°\n\n" +
+
+                "Fotogramas con ojos cerrados: " + summary.closedEyeFrames + "\n" +
+                "Fotogramas con ojos parcialmente bajos: " + summary.lowEyeFrames + "\n\n" +
+
+                "Nota: esta es una estimación visual, no un diagnóstico médico.";
+    }
+
+    private String calcularEvaluacionVisual(float opizq, float opder) {
         if (opizq <= 20 && opder <= 20) {
-            return "ALERTA - Microsueño / Ojos Cerrados";
-        }
-        // ADVERTENCIA (Somnolencia): Uno <= 20% o Ambos entre 21% y 40%
-        else if (opizq <= 20 || opder <= 20 || (opizq <= 40 && opder <= 40)) {
-            return "ADVERTENCIA - Somnolencia / Fatiga Temprana";
-        }
-        // ESTADO NORMAL: Ambos > 40%
-        else {
-            return "NORMAL - Alerta / Saludable";
+            return "ALERTA - Ojos cerrados o posible microsueño";
+        } else if (opizq <= 20 || opder <= 20 || (opizq <= 40 && opder <= 40)) {
+            return "ADVERTENCIA - Posible somnolencia o fatiga temprana";
+        } else {
+            return "NORMAL - Ojos mayormente abiertos";
         }
     }
 
@@ -447,6 +619,27 @@ public class FatigueLensActivity extends AppCompatActivity {
         resultCard.setVisibility(View.GONE);
         resultTitle.setText("");
         resultText.setText("");
+    }
+
+    private static class VideoAnalysisSummary {
+        int totalFrames = 0;
+        int framesAnalyzed = 0;
+        int framesWithFace = 0;
+        int totalFacesDetected = 0;
+
+        int closedEyeFrames = 0;
+        int lowEyeFrames = 0;
+
+        float sumLeftEye = 0f;
+        float sumRightEye = 0f;
+        int eyeDataCount = 0;
+
+        float sumSmile = 0f;
+        int smileDataCount = 0;
+
+        float sumHeadY = 0f;
+        float sumHeadZ = 0f;
+        int angleDataCount = 0;
     }
 
     @Override

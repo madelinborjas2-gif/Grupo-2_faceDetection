@@ -41,14 +41,11 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.material)
 
-    // ML Kit
     implementation(libs.face.detection)
     implementation(libs.face.mesh.detection)
 
-    // Necesaria para FileProvider
     implementation("androidx.core:core:1.13.1")
 
-    // Pruebas
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
