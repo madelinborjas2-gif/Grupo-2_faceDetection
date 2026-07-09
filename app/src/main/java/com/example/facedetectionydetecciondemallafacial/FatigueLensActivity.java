@@ -52,7 +52,6 @@ public class FatigueLensActivity extends AppCompatActivity {
 
     private Uri selectedMediaUri;
     private Uri cameraMediaUri;
-
     private boolean selectedIsVideo = false;
 
     private ActivityResultLauncher<Uri> takePictureLauncher;
@@ -75,7 +74,7 @@ public class FatigueLensActivity extends AppCompatActivity {
         MaterialButton btnGallery = findViewById(R.id.btnGallery);
         MaterialButton btnAnalyze = findViewById(R.id.btnAnalyze);
 
-        ImageButton btnSettings = findViewById(R.id.btnSettings);
+
         LinearLayout navHome = findViewById(R.id.navHome);
         LinearLayout navAnalysis = findViewById(R.id.navAnalysis);
 
@@ -85,15 +84,15 @@ public class FatigueLensActivity extends AppCompatActivity {
         btnGallery.setOnClickListener(v -> openGallery());
         btnAnalyze.setOnClickListener(v -> analyzeSelectedMedia());
 
-        btnSettings.setOnClickListener(v ->
-                Toast.makeText(this, "Configuración pendiente", Toast.LENGTH_SHORT).show()
-        );
 
         navHome.setOnClickListener(v ->
                 Toast.makeText(this, "Ya estás en Inicio", Toast.LENGTH_SHORT).show()
         );
 
-        navAnalysis.setOnClickListener(v -> analyzeSelectedMedia());
+        navAnalysis.setOnClickListener(v -> {
+            android.content.Intent intent = new android.content.Intent(this, ActividadAnalisisVivo.class);
+            startActivity(intent);
+        });
     }
 
     private void configureLaunchers() {

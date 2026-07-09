@@ -29,20 +29,11 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:fontFamily="sans"
-            android:text="FatigueLens"
+            android:text="Detector de Fatiga"
             android:textColor="@color/fl_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <ImageButton
-            android:id="@+id/btnSettings"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Configuración"
-            android:padding="8dp"
-            android:src="@drawable/ic_settings"
-            app:tint="@color/fl_primary" />
     </LinearLayout>
 
     <ScrollView
@@ -313,7 +304,7 @@
                 android:layout_width="20dp"
                 android:layout_height="20dp"
                 android:alpha="0.65"
-                android:src="@drawable/ic_analysis"
+                android:src="@drawable/outline_familiar_face_and_zone_24"
                 app:tint="@color/fl_outline" />
 
             <TextView
@@ -321,7 +312,7 @@
                 android:layout_height="wrap_content"
                 android:alpha="0.75"
                 android:fontFamily="monospace"
-                android:text="ML Kit"
+                android:text="Live Preview"
                 android:textColor="@color/fl_outline"
                 android:textSize="10sp"
                 android:textStyle="bold" />
