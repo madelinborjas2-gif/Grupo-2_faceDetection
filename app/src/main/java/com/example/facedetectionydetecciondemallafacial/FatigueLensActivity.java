@@ -381,17 +381,30 @@ public class FatigueLensActivity extends AppCompatActivity {
         for (Face face : faces) {
             result.append("Rostro ").append(counter).append(":\n");
 
+            Float smilingProb = face.getSmilingProbability();
+            Float leftEyeProb = face.getLeftEyeOpenProbability();
+            Float rightEyeProb = face.getRightEyeOpenProbability();
+
             result.append("• Sonrisa: ")
-                    .append(probabilityToPercent(face.getSmilingProbability()))
+                    .append(probabilityToPercent(smilingProb))
                     .append("\n");
 
             result.append("• Ojo izquierdo abierto: ")
-                    .append(probabilityToPercent(face.getLeftEyeOpenProbability()))
+                    .append(probabilityToPercent(leftEyeProb))
                     .append("\n");
 
             result.append("• Ojo derecho abierto: ")
-                    .append(probabilityToPercent(face.getRightEyeOpenProbability()))
+                    .append(probabilityToPercent(rightEyeProb))
                     .append("\n");
+
+            //PERCLOS
+            if (leftEyeProb != null && rightEyeProb != null) {
+                float leftPercent = leftEyeProb * 100;
+                float rightPercent = rightEyeProb * 100;
+                result.append("• Diagnóstico PERCLOS: ")
+                        .append(calcularDiagnosticoPerclos(leftPercent, rightPercent))
+                        .append("\n");
+            }
 
             result.append("• Giro horizontal: ")
                     .append(Math.round(face.getHeadEulerAngleY()))
@@ -405,6 +418,20 @@ public class FatigueLensActivity extends AppCompatActivity {
         }
 
         return result.toString();
+    }
+    private String calcularDiagnosticoPerclos(float opizq, float opder) {
+        // ALERTA MÁXIMA (Fatiga Crítica / Microsueño): Ambos ojos apertura <= 20%
+        if (opizq <= 20 && opder <= 20) {
+            return "ALERTA - Microsueño / Ojos Cerrados";
+        }
+        // ADVERTENCIA (Somnolencia): Uno <= 20% o Ambos entre 21% y 40%
+        else if (opizq <= 20 || opder <= 20 || (opizq <= 40 && opder <= 40)) {
+            return "ADVERTENCIA - Somnolencia / Fatiga Temprana";
+        }
+        // ESTADO NORMAL: Ambos > 40%
+        else {
+            return "NORMAL - Alerta / Saludable";
+        }
     }
 
     private String probabilityToPercent(Float value) {
