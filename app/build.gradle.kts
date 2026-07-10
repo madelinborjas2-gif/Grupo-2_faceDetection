@@ -5,11 +5,7 @@ plugins {
 android {
     namespace = "com.example.facedetectionydetecciondemallafacial"
 
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.facedetectionydetecciondemallafacial"
@@ -19,6 +15,12 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
     }
 
     buildTypes {
@@ -47,11 +49,20 @@ dependencies {
     implementation(libs.constraintlayout)
     implementation(libs.material)
 
+    // ML Kit
     implementation(libs.face.detection)
     implementation(libs.face.mesh.detection)
 
+    // CameraX
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
+
+    // Necesaria para FileProvider
     implementation("androidx.core:core:1.13.1")
 
+    // Pruebas
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
