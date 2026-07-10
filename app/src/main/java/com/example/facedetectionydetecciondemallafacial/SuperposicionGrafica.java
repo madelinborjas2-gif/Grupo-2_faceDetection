@@ -9,12 +9,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SuperposicionGrafica extends View {
+
+    //Variables
     private final Object lock = new Object();
     private int imageWidth;
     private int imageHeight;
     private float widthScaleFactor = 1.0f;
     private float heightScaleFactor = 1.0f;
-    private int facing = 1; // 1 for front, 0 for back
+    private int facing = 1;
     private final List<Grafico> graficos = new ArrayList<>();
 
     public abstract static class Grafico {
@@ -60,10 +62,6 @@ public class SuperposicionGrafica extends View {
         postInvalidate();
     }
 
-    /**
-     * Sets the camera attributes for size and facing direction, which informs how to transform
-     * image coordinates later.
-     */
     public void setCameraInfo(int width, int height, int facing) {
         synchronized (lock) {
             this.imageWidth = width;
@@ -79,7 +77,6 @@ public class SuperposicionGrafica extends View {
 
         synchronized (lock) {
             if (imageWidth != 0 && imageHeight != 0) {
-                // Determine scale factors based on the view size and image size
                 widthScaleFactor = (float) getWidth() / imageWidth;
                 heightScaleFactor = (float) getHeight() / imageHeight;
             }

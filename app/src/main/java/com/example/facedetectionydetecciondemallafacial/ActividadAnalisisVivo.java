@@ -50,13 +50,16 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
     private ProcessCameraProvider cameraProvider;
     private final CameraSelector cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
     private ExecutorService cameraExecutor;
-    private FaceMeshDetector detector;
+    private FaceMeshDetector detector; //Deteccion de la malla facial
 
-    private final Deque<Boolean> eyeStatusWindow = new ArrayDeque<>();
-    private static final int WINDOW_SIZE = 100; // Analiza los últimos ~5 segundos (a 20fps)
+    private final Deque<Boolean> eyeStatusWindow = new ArrayDeque<>(); // Cola para frames para calculo PERCLOS
+    private static final int WINDOW_SIZE = 100;
+
+    // Para el sonido de alerta
     private ToneGenerator toneGenerator;
+    private int alertCooldown = 0;
 
-    private int alertCooldown = 0; // Para evitar que el sonido se sature
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,10 +89,12 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
         setupDetector();
     }
 
+    //Verificion de permisos
     private boolean checkPermissions() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
     }
 
+    //Solicitud de permisos
     private void requestPermissions() {
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, PERMISSION_REQUEST_CODE);
     }
@@ -107,6 +112,8 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
         }
     }
 
+
+    //Configuracion el detector de malla facial
     private void setupDetector() {
         FaceMeshDetectorOptions options = new FaceMeshDetectorOptions.Builder()
                 .setUseCase(FaceMeshDetectorOptions.FACE_MESH)
@@ -114,6 +121,7 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
         detector = FaceMeshDetection.getClient(options);
     }
 
+    //Inicia la camara
     private void startCamera() {
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
         cameraProviderFuture.addListener(() -> {
@@ -126,6 +134,7 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
         }, ContextCompat.getMainExecutor(this));
     }
 
+    //Configuracion de la camara y analisis de imagenes
     @OptIn(markerClass = ExperimentalGetImage.class)
     private void bindCameraUseCases() {
         Preview preview = new Preview.Builder().build();
@@ -146,6 +155,8 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
         }
     }
 
+
+    //Detectar rostros con face mesh y analisis
     @androidx.camera.core.ExperimentalGetImage
     private void processImageProxy(androidx.camera.core.ImageProxy image) {
         android.media.Image mediaImage = image.getImage();
@@ -177,15 +188,17 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
         }
     }
 
+
+    //Calculo del EAR(Eye Aspect Ratio) para saber si los ojos estan cerrados o abiertos en cada fotograma
     private void analyzeFatigue(FaceMesh faceMesh) {
-        // EAR (Eye Aspect Ratio) calculation
-        // Left eye points: top 159, bottom 145, left 33, right 133
+
+
+        //Numeros fijos de los puntos correspondientes a los ojos en la malla facial de 468 puntos
         float leftEAR = calculateEAR(faceMesh, 159, 145, 33, 133);
-        // Right eye points: top 386, bottom 374, left 362, right 263
         float rightEAR = calculateEAR(faceMesh, 386, 374, 362, 263);
         
-        // Umbral EAR: 0.15 - 0.18 suele ser ojos cerrados.
-        // Un parpadeo normal dura ~300ms. Al aumentar WINDOW_SIZE, los parpadeos diluyen su impacto en el PERCLOS.
+        // Umbral EAR: <0.16 para ojos cerrados
+        // Umbral EAR: 0.25 - 0.35 para ojos abiertos
         boolean eyesClosed = (leftEAR < 0.16f && rightEAR < 0.16f);
 
         runOnUiThread(() -> {
@@ -195,6 +208,8 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
         });
     }
 
+
+    //Obtencio de los valores de los puntos de la malla facial y calculo de EAR = distancia vertical del ojo/ distancia horizontal del ojo
     private float calculateEAR(FaceMesh faceMesh, int top, int bottom, int left, int right) {
         float verticalDist = getDistance(faceMesh.getAllPoints().get(top).getPosition(), 
                                          faceMesh.getAllPoints().get(bottom).getPosition());
@@ -203,6 +218,7 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
         return verticalDist / horizontalDist;
     }
 
+    //Distancia euclidiana entre dos puntos, si es < 0.16 se considera ojos cerrados
     private float getDistance(com.google.mlkit.vision.common.PointF3D p1, com.google.mlkit.vision.common.PointF3D p2) {
         return (float) Math.sqrt(Math.pow(p1.getX() - p2.getX(), 2) + Math.pow(p1.getY() - p2.getY(), 2));
     }
@@ -228,7 +244,7 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
             
             if (alertCooldown <= 0) {
                 toneGenerator.startTone(ToneGenerator.TONE_CDMA_HIGH_L, 2500);
-                alertCooldown = 60; // Silencio por ~1 segundo para no saturar
+                alertCooldown = 60;
             }
         } else {
             alertCard.setVisibility(View.GONE);
