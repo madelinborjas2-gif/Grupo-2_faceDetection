@@ -237,7 +237,7 @@ public class ActividadAnalisisVivo extends AppCompatActivity {
         float perclos = (float) closedCount / WINDOW_SIZE * 100;
         tvPerclos.setText(String.format(Locale.getDefault(), "PERCLOS: %.1f%%", perclos));
 
-        // Un PERCLOS > 12% en una ventana de 5 segundos indica ojos cerrados por más de 0.6s (fatiga real).
+        // Un PERCLOS > 12% en una ventana de aprox 3 segundos indica ojos cerrados por más de 0.6s (fatiga real).
         if (perclos > 12) { 
             alertCard.setVisibility(View.VISIBLE);
             tvEyeStatus.setText("Estado: FATIGA DETECTADA");
