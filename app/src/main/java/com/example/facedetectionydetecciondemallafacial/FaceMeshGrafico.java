@@ -15,12 +15,13 @@ public class FaceMeshGrafico extends SuperposicionGrafica.Grafico {
     private final Paint dotPaint;
     private final Paint connectionPaint;
 
+    //Malla visual
     public FaceMeshGrafico(SuperposicionGrafica overlay, FaceMesh faceMesh) {
         super(overlay);
         this.faceMesh = faceMesh;
 
         dotPaint = new Paint();
-        dotPaint.setColor(Color.CYAN);
+        dotPaint.setColor(Color.WHITE);
         dotPaint.setAlpha(200);
         dotPaint.setStrokeWidth(2.0f);
         dotPaint.setStyle(Paint.Style.FILL);
@@ -35,9 +36,9 @@ public class FaceMeshGrafico extends SuperposicionGrafica.Grafico {
     public void draw(Canvas canvas) {
         if (faceMesh == null) return;
 
+        //Obtener los 468 puntos en 3D de la malla facial usando Face Mesh
         List<FaceMeshPoint> points = faceMesh.getAllPoints();
-        
-        // Dibujamos los puntos con un pequeño brillo cian
+
         for (FaceMeshPoint point : points) {
             PointF3D position = point.getPosition();
             float x = translateX(position.getX());
@@ -45,9 +46,8 @@ public class FaceMeshGrafico extends SuperposicionGrafica.Grafico {
             canvas.drawCircle(x, y, 1.2f, dotPaint);
         }
         
-        // Para dar el efecto de "malla" de la documentación, conectamos puntos cercanos
-        // Nota: En la versión beta de ML Kit, esto simula la red sin necesidad de los índices de triángulos
-        for (int i = 0; i < points.size(); i += 8) { // Saltamos para no saturar el dibujo
+
+        for (int i = 0; i < points.size(); i += 8) {
             PointF3D p1 = points.get(i).getPosition();
             for (int j = i + 1; j < Math.min(i + 4, points.size()); j++) {
                 PointF3D p2 = points.get(j).getPosition();
