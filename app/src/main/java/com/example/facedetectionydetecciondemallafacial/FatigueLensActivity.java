@@ -4,6 +4,8 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Bundle;
@@ -24,6 +26,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 
 import com.google.android.material.button.MaterialButton;
+
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.face.Face;
 import com.google.mlkit.vision.face.FaceDetection;
@@ -252,8 +255,11 @@ public class FatigueLensActivity extends AppCompatActivity {
 
             InputStream inputStream = getContentResolver().openInputStream(uri);
             Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+            if (inputStream != null) inputStream.close();
 
             if (bitmap != null) {
+                bitmap = rotateImageIfRequired(bitmap, uri);
+
                 imagePreview.setImageBitmap(bitmap);
                 imagePreview.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 previewText.setVisibility(View.GONE);
@@ -261,15 +267,40 @@ public class FatigueLensActivity extends AppCompatActivity {
                 Toast.makeText(this, "No se pudo mostrar la imagen", Toast.LENGTH_SHORT).show();
             }
 
-            if (inputStream != null) {
-                inputStream.close();
-            }
-
         } catch (Exception e) {
             imagePreview.setImageResource(android.R.drawable.ic_menu_report_image);
             previewText.setText("Error al cargar imagen");
             previewText.setVisibility(View.VISIBLE);
         }
+    }
+    private Bitmap rotateImageIfRequired(Bitmap img, Uri uri) throws IOException {
+        InputStream input = getContentResolver().openInputStream(uri);
+        if (input == null) return img;
+
+        ExifInterface ei = new ExifInterface(input);
+        int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+        input.close();
+
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                return rotateImage(img, 90);
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                return rotateImage(img, 180);
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                return rotateImage(img, 270);
+            default:
+                return img;
+        }
+    }
+
+    private Bitmap rotateImage(Bitmap img, int degree) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(degree);
+        Bitmap rotatedImg = Bitmap.createBitmap(img, 0, 0, img.getWidth(), img.getHeight(), matrix, true);
+        if (rotatedImg != img) {
+            img.recycle();
+        }
+        return rotatedImg;
     }
 
     private void showVideoPreview(String message) {
@@ -283,7 +314,7 @@ public class FatigueLensActivity extends AppCompatActivity {
         previewText.setVisibility(View.VISIBLE);
     }
 
-    private void analyzeSelectedMedia() {
+    private void analyzeSelectedMedia() { // #1. al presionar Analizar
         if (selectedMediaUri == null) {
             Toast.makeText(this, "Primero captura o selecciona una foto o video", Toast.LENGTH_SHORT).show();
             return;
@@ -300,10 +331,11 @@ public class FatigueLensActivity extends AppCompatActivity {
         }
     }
 
-    private void analyzeImage(Uri uri) {
+    private void analyzeImage(Uri uri) { //#2.
         try {
             InputImage image = InputImage.fromFilePath(this, uri);
-            detectFaces(image);
+            detectFaces(image); //convertimos uri a image para ML Kit
+            //#3. detectfaces()
 
         } catch (IOException e) {
             resultTitle.setText("ERROR");
@@ -511,8 +543,8 @@ public class FatigueLensActivity extends AppCompatActivity {
                 float leftPercent = leftEyeProb * 100;
                 float rightPercent = rightEyeProb * 100;
 
-                result.append("• Evaluación visual: ")
-                        .append(calcularEvaluacionVisual(leftPercent, rightPercent))
+                result.append("• Diagnóstico PERCLOS: ")
+                        .append(calcularDiagnosticoPerclos(leftPercent, rightPercent))
                         .append("\n");
             }
 
@@ -595,13 +627,13 @@ public class FatigueLensActivity extends AppCompatActivity {
                 "Nota: esta es una estimación visual, no un diagnóstico médico.";
     }
 
-    private String calcularEvaluacionVisual(float opizq, float opder) {
+    private String calcularDiagnosticoPerclos(float opizq, float opder) {
         if (opizq <= 20 && opder <= 20) {
-            return "ALERTA - Ojos cerrados o posible microsueño";
+            return "ALERTA - Microsueño / Ojos Cerrados";
         } else if (opizq <= 20 || opder <= 20 || (opizq <= 40 && opder <= 40)) {
-            return "ADVERTENCIA - Posible somnolencia o fatiga temprana";
+            return "ADVERTENCIA - Somnolencia / Fatiga Temprana";
         } else {
-            return "NORMAL - Ojos mayormente abiertos";
+            return "NORMAL - Alerta / Saludable";
         }
     }
 
